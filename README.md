@@ -6,12 +6,12 @@ Files `data_bees.xlsx` and `data_vegetation.xlsx` contains data, data analysis i
 
 Authors:
 
-Betija Rubene - 0009-0001-5794-2045
+Betija Rubene (https://orcid.org/0009-0001-5794-2045)
 
-Rūta Starka - 0000-0001-6449-0588
+Rūta Starka (https://orcid.org/0000-0001-6449-0588)
 
-Jānis Gailis - 0000-0002-2398-7683
+Jānis Gailis (https://orcid.org/0000-0002-2398-7683)
 
-Andris Avotins - 0000-0001-8582-0822
+Andris Avotins (https://orcid.org/0000-0001-8582-0822)
 
 
