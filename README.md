@@ -14,4 +14,6 @@ Jānis Gailis (https://orcid.org/0000-0002-2398-7683)
 
 Andris Avotins (https://orcid.org/0000-0001-8582-0822)
 
+Corresponding author - Betija Rubene (betija.rubene@lbtu.lv)
+
 

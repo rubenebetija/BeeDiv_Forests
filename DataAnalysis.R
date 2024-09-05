@@ -34,7 +34,7 @@ bee_data <- as.data.frame(bee_data)
 bee_div <- diversity(bee_data,"shannon")
 data$bee_div <- bee_div
 
-# data frame preparation for GAMs - calculating mean values of bee diversity
+# dataframe preparation for GAMs - calculating mean values of bee diversity
 data2 <- data %>%
   group_by(Identificator) %>%
   summarise(bee_div = ifelse(n() > 1, mean(bee_div, na.rm = TRUE),
@@ -42,7 +42,7 @@ data2 <- data %>%
             Area = Area[1],
             Age = Age[1])
 
-# vegetation data - flowering plants. Calculating diversity and total coverage
+# Calculating diversity and total coverage of flowers
 flower_coverage <- veg_data[2:34]
 fl_div <- diversity(flower_coverage, "shannon")
 veg_data$fl_div <- fl_div
@@ -51,11 +51,13 @@ data2 <- merge(data2, veg_data[, c("Identificator", "fl_div", "fl_cov", "Lysimac
                by = "Identificator", all.x = TRUE)
 data2[is.na(data2)] <- 0
 
+
 # Question 1 ----
 # How does forest stand age and area influence bee diversity?
 
 ## modelling ----
-# Using GAMM - we expected that the response function of the stand may not be linear due to its age-related characteristics
+# Using GAMM - we expected that the response function of the stand may not be linear due to its 
+# age-related characteristics
 
 mod1=gamm(log1p(bee_div) ~ s(Age) + s(Area) + factor(Period),
            random=list(Identificator=~1),data=data) 
@@ -63,27 +65,21 @@ mod1=gamm(log1p(bee_div) ~ s(Age) + s(Area) + factor(Period),
 mod2=gamm(log1p(bee_div) ~ s(Age) + Area + factor(Period),
            random=list(Identificator=~1),data=data) 
 
-mod3=gamm(log1p(bee_div) ~ Age +s(Area) + factor(Period),
-           random=list(Identificator=~1),data=data) 
-
-mod4=gamm(log1p(bee_div) ~ s(Age,Area) + factor(Period),
+mod3=gamm(log1p(bee_div) ~ s(Age,Area) + factor(Period),
           random=list(Identificator=~1),data=data) 
 
-mod5=gamm(log1p(bee_div) ~ Age + Area + factor(Period),
-          random=list(Identificator=~1),data=data)
-
 ## model selection ----
-MuMIn::AICc(mod1,mod2,mod3,mod4,mod5)
-# mod4 with factor interaction has the lowest AICc
-summary(mod4$gam)
-sjPlot::tab_model(mod4)
+MuMIn::AICc(mod1,mod2,mod3)
+# mod3 with factor interaction has the lowest AICc, so we selected this one
+summary(mod3$gam)
+sjPlot::tab_model(mod3)
 
 ## prognosis and visualisation ----
-data$prognosis=expm1(predict(mod4,data))
+data$prognosis=expm1(predict(mod3,data))
 prognosis_data=expand.grid(Age=seq(1,30,by=1),
                            Area=seq(0,5,0.25),
                            Period=c(1,2))
-prognosis_data$prognosis=expm1(predict(mod4,prognosis_data))
+prognosis_data$prognosis=expm1(predict(mod3,prognosis_data))
 
 # Fig 2
 labels <- c("Period 1", "Period 2")
@@ -132,35 +128,49 @@ cor(corel)
 cor.test(data2$Lysimachia, data2$fl_cov)
 # Correlation between Lysimachia and fl_cov is 0.89 (p<0.001), we will exclude this combination in the models
 
-
 ## modelling ----
+# generating all possible factor combinations using the "dredge" function
 options(na.action = na.fail)
 
-a1 <- gam(log1p(bee_div)~Age+Area+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
+a1 <- gam(log1p(bee_div)~s(Age,Area)+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
 dr1 <- MuMIn::dredge(a1,subset=!(Lysimachia&&fl_cov))
 
 b1 <- gam(log1p(bee_div)~s(Age)+Area+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
 dr2 <- MuMIn::dredge(b1,subset=!(Lysimachia&&fl_cov))
-# 
 
 c1 <- gam(log1p(bee_div)~s(Age)+s(Area)+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
 dr3 <- MuMIn::dredge(c1,subset=!(Lysimachia&&fl_cov))
 
-d1 <- gam(log1p(bee_div)~Age+s(Area)+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
-dr4 <- MuMIn::dredge(d1,subset=!(Lysimachia&&fl_cov))
-
 ## model selection ----
 
-# ...
-gam <- gam(log1p(bee_div)~s(Age) + fl_div + Area, data=data2)
-summary(gam)
-sjPlot::tab_model(gam)
+# Based on the AICc of the best models in dr1, dr2, dr3 it is clear that dr2 and dr3
+# results are identical, therefore we chose the second model (dr2) as the best, as it 
+# is a simpler model
+
+# Checking the response curves for models with delta < 2 in addition to AICc to choose 
+# the best model
+
+# 1st model from dr2
+dr2_1 <- gam(log1p(bee_div)~s(Age) + fl_div, data=data2)
+plot(dr2_1) # the end curves upward
+
+# 2nd model from dr2
+dr2_2 <- gam(log1p(bee_div)~s(Age) + fl_div + Area, data=data2)
+plot(dr2_2) # the end curves slightly downward
+
+# 3rd model from dr2
+dr2_3 <- gam(log1p(bee_div)~s(Age) + fl_div + Lysimachia, data=data2)
+plot(dr2_3) # the end curves slightly upward
+
+# We would expect the bee diversity to rise again at some point during the forest succession
+# as windthrow occurs, but not as soon as 30 years after clear-cutting, so we chose dr2_2
+# as the best model based on AICc values and the response curve
 
 ## prognosis and visualisation ----
 
 # Fig. 3
-# This figure is an addition to aid in answering Q1
-gamviz <- ggpredict(gam,terms="Age [n=100]")
+# This figure is an addition to answer Q1
+gamviz <- ggpredict(dr2_2,terms="Age [n=100]")
 fig3 <- ggplot(gamviz, aes(x, predicted, ymin = conf.low, ymax = conf.high)) +
   geom_ribbon(alpha = 0.25, fill = "blue") +
   geom_line() +
@@ -180,7 +190,7 @@ ggview(plot = fig3,dpi=600,width=84,height=60,units="mm")
 prognosis_data2=expand.grid(Age=seq(1,30,by=1),
                             Area=seq(0,5,0.25),
                             fl_div=c(0,0.5,1,1.5,2,2.5))
-prognosis_data2$prognosis=expm1(predict(gam,prognosis_data2))
+prognosis_data2$prognosis=expm1(predict(dr2_2,prognosis_data2))
 
 dose.labs <- c("Plant diversity, H: 0", "Plant diversity, H: 0,5", "Plant diversity, H: 1",
                "Plant diversity, H: 1,5", "Plant diversity, H: 2", "Plant diversity, H: 2,5")
