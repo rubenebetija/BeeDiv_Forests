@@ -141,6 +141,11 @@ dr2 <- MuMIn::dredge(b1,subset=!(Lysimachia&&fl_cov))
 c1 <- gam(log1p(bee_div)~s(Age)+s(Area)+fl_div+fl_cov+Lysimachia+Campanula,data=data2)
 dr3 <- MuMIn::dredge(c1,subset=!(Lysimachia&&fl_cov))
 
+# exporting the dredge objects as excel files
+#write_xlsx(dr1, "dr1.xlsx")
+#write_xlsx(dr2, "dr2.xlsx")
+#write_xlsx(dr3, "dr3.xlsx")
+
 ## model selection ----
 
 # Based on the AICc of the best models in dr1, dr2, dr3 it is clear that dr2 and dr3
@@ -165,6 +170,7 @@ plot(dr2_3) # the end curves slightly upward
 # We would expect the bee diversity to rise again at some point during the forest succession
 # as windthrow occurs, but not as soon as 30 years after clear-cutting, so we chose dr2_2
 # as the best model based on AICc values and the response curve
+summary(dr2_2)
 
 ## prognosis and visualisation ----
 
